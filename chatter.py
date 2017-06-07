@@ -20,7 +20,7 @@ class MarkovChain():
         self.brain = shelve.open(name+".db")
 
     def observe(self, state, nextst):
-        links = self.brain.setdefault(state, ([],[]) )
+        links = self.brain.get(state, ([],[]) )
         if nextst not in links[0]:
             links[0].append(nextst)
             links[1].append(1)
