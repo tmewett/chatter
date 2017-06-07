@@ -1,7 +1,7 @@
 import random
 import re
 import shelve
-import zshelve
+
 
 def _choices(choices):
     choices = tuple(choices) # we have to iterate twice
@@ -37,34 +37,6 @@ class MarkovChain():
         self.brain.close()
 
 
-# Customised class for the seed database. It can grow very large,
-# so we use a custom zlib-compressed shelf from zshelve and writeback on.
-# We also don't store frequencies.
-class SeedMarkovChain(MarkovChain):
-
-    def __init__(self, name):
-        self.brain = shelve.open(name+".db", writeback=True)
-        self.access = 0
-
-    def _access(self):
-        self.access += 1
-        if self.access >= 1000:
-            self.access = 0
-            self.brain.sync()
-
-    def observe(self, state, nextst):
-        self._access()
-        links = self.brain.setdefault(state, [])
-        if nextst not in links:
-            links.append(nextst)
-        self.brain[state] = links
-
-    def findnext(self, state):
-        self._access()
-        links = self.brain[state]
-        return random.choice(links)
-
-
 def _observe_seq(chain, words, norms):
     words = words.copy()
     words.append("end")
@@ -98,32 +70,28 @@ def _normalize(s):
 class Chatter():
 
     def __init__(self, name):
-        self.count = shelve.open(name+"_count.db")
         self.fore = MarkovChain(name+"_fore")
         self.back = MarkovChain(name+"_back")
-        self.seed = SeedMarkovChain(name+"_seed")
+        self.case = MarkovChain(name+"_case")
+        self.seed = MarkovChain(name+"_seed")
 
     # Returns a random learned norm in the list, or None
     def _keyword(self, norms):
         norms = norms.copy()
-        vals = []
-        allnorms = self.count.keys()
+        allnorms = self.case.brain.keys()
 
         for nm in norms:
             if nm not in allnorms:
                 norms.remove(nm)
-            else:
-                vals.append(self.count[nm])
 
-        # TODO adjusted weights, to supposedly favour words
-        # around the mean freq.
         if norms:
-            #~ total = sum(vals)/2
-            #~ maxv = max(vals)
-            #~ adj = [maxv-abs()
-            return _choices(zip(norms, vals))
+            return random.choice(norms)
         else:
             return None
+
+    def _seed(self, norm):
+        word = self.case.findnext(norm)
+        return word+" "+self.seed.findnext(word)
 
     def learn(self, line):
         words = list(_clean(line.split()))
@@ -132,15 +100,15 @@ class Chatter():
             return
         norms = [_normalize(w) for w in words]
 
-        # add 'start' -> word0, word1 to the start of the seed chain so we can generate
-        # sentences from the beginning
-        self.seed.observe("start", " ".join(words[0:2]))
-        for i in range(len(norms)-1):
-            self.seed.observe(norms[i], " ".join(words[i:i+2]))
 
-        for nm in norms:
-            self.count.setdefault(nm, 0)
-            self.count[nm] += 1
+        self.case.observe("start", words[0])
+        # -1 so we don't learn the case of the last word. Otherwise
+        # we will have problems seeding. TODO fix?
+        for i in range(len(norms)-1):
+            self.case.observe(norms[i], words[i])
+
+        for i in range(len(words)-1):
+            self.seed.observe(words[i], words[i+1])
 
         _observe_seq(self.fore, words, norms)
         words.reverse()
@@ -161,9 +129,9 @@ class Chatter():
         if not keyw:
             # no keywords? generate a sentence from the beginning
             keyw = "start"
-        seed = self.seed.findnext(keyw)
+        seed = self._seed(keyw)
         return self.generate(seed)
 
     def close(self):
-        for db in (self.fore, self.back, self.count, self.seed):
+        for db in (self.fore, self.back, self.case, self.seed):
             db.close()
