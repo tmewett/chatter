@@ -42,24 +42,25 @@ class MarkovChain():
 
 def _observe_seq(chain, words, norms):
     words = words.copy()
-    words.append("end")
+    words.append("%END%")
     for n in range(len(norms)-1):
         chain.observe(" ".join(norms[n:n+2]), words[n+2])
 
 # Continue the sentence from the two given norms.
 # Returns a list of words. The norms must have been observed already
-def _find_seq(chain, norms):
+def _find_seq(chain, nms):
     words = []
+    norms = nms.copy()
     for i in count(0):
         nextw = chain.findnext(" ".join(norms[i:i+2]))
-        if nextw == "end": break
+        if nextw == "%END%": break
         words.append(nextw)
         norms.append(_normalize(nextw))
     return words
 
 def _clean(lst):
     for s in lst:
-        if "://" in s: continue
+        if "://" in s or s == "%END%": continue
         yield s
 
 def _normalize(s):
@@ -100,7 +101,7 @@ class Chatter():
         norms = [_normalize(w) for w in words]
 
 
-        self.case.observe("start", words[0])
+        self.case.observe("%START%", words[0])
         # -1 so we don't learn the case of the last word. Otherwise
         # we will have problems seeding. TODO fix?
         for i in range(len(norms)-1):
@@ -127,7 +128,7 @@ class Chatter():
         keyw = self._keyword(norms)
         if not keyw:
             # no keywords? generate a sentence from the beginning
-            keyw = "start"
+            keyw = "%START%"
         seed = self._seed(keyw)
         return self.generate(seed)
 
