@@ -1,4 +1,5 @@
 import random
+from itertools import count
 import re
 import shelve
 from os import mkdir
@@ -47,16 +48,13 @@ def _observe_seq(chain, words, norms):
 
 # Continue the sentence from the two given norms.
 # Returns a list of words. The norms must have been observed already
-def _find_seq(chain, nm1, nm2):
+def _find_seq(chain, norms):
     words = []
-    norms = [nm1, nm2]
-    i = 0
-    while True:
+    for i in count(0):
         nextw = chain.findnext(" ".join(norms[i:i+2]))
         if nextw == "end": break
         words.append(nextw)
         norms.append(_normalize(nextw))
-        i += 1
     return words
 
 def _clean(lst):
@@ -119,8 +117,8 @@ class Chatter():
     # Generate a sentence which includes wordpair, which must have been observed
     def generate(self, wordpair):
         start = [_normalize(w) for w in wordpair.split()]
-        forewd = _find_seq(self.fore, start[0], start[1])
-        backwd = _find_seq(self.back, start[1], start[0])
+        forewd = _find_seq(self.fore, start)
+        backwd = _find_seq(self.back, start[::-1])
         phrase = (*reversed(backwd), wordpair, *forewd)
         return " ".join(phrase)
 
