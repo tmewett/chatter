@@ -106,8 +106,6 @@ class Chatter():
         # we will have problems seeding. TODO fix?
         for i in range(len(norms)-1):
             self.case.observe(norms[i], words[i])
-
-        for i in range(len(words)-1):
             self.seed.observe(words[i], words[i+1])
 
         _observe_seq(self.fore, words, norms)
