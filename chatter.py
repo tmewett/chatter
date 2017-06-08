@@ -82,16 +82,13 @@ class Chatter():
     # Returns a random learned norm in the list, or None
     def _keyword(self, norms):
         norms = norms.copy()
+        random.shuffle(norms)
         allnorms = self.case.brain.keys()
 
         for nm in norms:
-            if nm not in allnorms:
-                norms.remove(nm)
-
-        if norms:
-            return random.choice(norms)
-        else:
-            return None
+            if nm in allnorms:
+                return nm
+        return None
 
     def _seed(self, norm):
         word = self.case.findnext(norm)
