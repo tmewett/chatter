@@ -1,6 +1,8 @@
 import random
 import re
 import shelve
+from os import mkdir
+import os.path
 
 
 def _choices(choices):
@@ -70,10 +72,12 @@ def _normalize(s):
 class Chatter():
 
     def __init__(self, name):
-        self.fore = MarkovChain(name+"_fore")
-        self.back = MarkovChain(name+"_back")
-        self.case = MarkovChain(name+"_case")
-        self.seed = MarkovChain(name+"_seed")
+        if not os.path.exists(name):
+            mkdir(name)
+        self.fore = MarkovChain(os.path.join(name, "fore"))
+        self.back = MarkovChain(os.path.join(name, "back"))
+        self.case = MarkovChain(os.path.join(name, "case"))
+        self.seed = MarkovChain(os.path.join(name, "seed"))
 
     # Returns a random learned norm in the list, or None
     def _keyword(self, norms):
