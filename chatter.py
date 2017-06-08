@@ -1,5 +1,5 @@
 import random
-from itertools import count
+from itertools import count, chain
 import re
 import shelve
 from os import mkdir
@@ -115,11 +115,13 @@ class Chatter():
 
     # Generate a sentence which includes wordpair, which must have been observed
     def generate(self, wordpair):
-        start = [_normalize(w) for w in wordpair.split()]
+        words = wordpair.split()
+        start = [_normalize(w) for w in words]
         forewd = _find_seq(self.fore, start)
         backwd = _find_seq(self.back, start[::-1])
-        phrase = (*reversed(backwd), wordpair, *forewd)
-        return " ".join(phrase)
+        backwd.reverse()
+        phrasei = chain(backwd, words, forewd)
+        return " ".join(phrasei)
 
     def respond(self, line):
         norms = [_normalize(w) for w in line.split()]
