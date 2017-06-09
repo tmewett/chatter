@@ -19,8 +19,8 @@ def _choices(choices):
 
 class MarkovChain():
 
-    def __init__(self, name, wb):
-        self.brain = shelve.open(name+".db", writeback=wb)
+    def __init__(self, name, writeback=False):
+        self.brain = shelve.open(name, writeback=writeback)
 
     def observe(self, state, nextst):
         links = self.brain.get(state, ([],[]) )
@@ -67,10 +67,10 @@ class Chatter():
     def __init__(self, name, writeback=False):
         if not os.path.exists(name):
             mkdir(name)
-        self.fore = MarkovChain(os.path.join(name, "fore"), wb=writeback)
-        self.back = MarkovChain(os.path.join(name, "back"), wb=writeback)
-        self.case = MarkovChain(os.path.join(name, "case"), wb=writeback)
-        self.seed = MarkovChain(os.path.join(name, "seed"), wb=writeback)
+        self.fore = MarkovChain(os.path.join(name, "fore.db"), writeback)
+        self.back = MarkovChain(os.path.join(name, "back.db"), writeback)
+        self.case = MarkovChain(os.path.join(name, "case.db"), writeback)
+        self.seed = MarkovChain(os.path.join(name, "seed.db"), writeback)
 
     # Returns a random learned norm in the list, or None
     def _keyword(self, norms):
