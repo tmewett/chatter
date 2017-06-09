@@ -40,12 +40,6 @@ class MarkovChain():
         self.brain.close()
 
 
-def _observe_seq(chain, words, norms):
-    words = words.copy()
-    words.append("%END%")
-    for n in range(len(norms)-1):
-        chain.observe(" ".join(norms[n:n+2]), words[n+2])
-
 # Continue the sentence from the two given norms.
 # Returns a list of words. The norms must have been observed already
 def _find_seq(chain, nms):
@@ -100,18 +94,16 @@ class Chatter():
             return
         norms = [_normalize(w) for w in words]
 
-
         self.case.observe("%START%", words[0])
+        words.insert(0, "%END%")
+        words.append("%END%")
         # -1 so we don't learn the case of the last word. Otherwise
         # we will have problems seeding. TODO fix?
         for i in range(len(norms)-1):
-            self.case.observe(norms[i], words[i])
-            self.seed.observe(words[i], words[i+1])
-
-        _observe_seq(self.fore, words, norms)
-        words.reverse()
-        norms.reverse()
-        _observe_seq(self.back, words, norms)
+            self.fore.observe(" ".join(norms[i:i+2]), words[i+3])
+            self.back.observe(" ".join(reversed(norms[i:i+2])), words[i])
+            self.case.observe(norms[i], words[i+1])
+            self.seed.observe(words[i+1], words[i+2])
 
     # Generate a sentence which includes wordpair, which must have been observed
     def generate(self, wordpair):
