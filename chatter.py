@@ -94,7 +94,6 @@ class Chatter():
             return
         norms = [_normalize(w) for w in words]
 
-        self.case.observe("%START%", words[0])
         words.insert(0, "%END%")
         words.append("%END%")
         # -1 so we don't learn the case of the last word. Otherwise
@@ -119,8 +118,8 @@ class Chatter():
         norms = [_normalize(w) for w in line.split()]
         keyw = self._keyword(norms)
         if not keyw:
-            # no keywords? generate a sentence from the beginning
-            keyw = "%START%"
+            # no keywords? what to do? _seed(None) fails
+            pass
         seed = self._seed(keyw)
         return self.generate(seed)
 
