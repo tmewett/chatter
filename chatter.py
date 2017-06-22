@@ -40,6 +40,9 @@ class MarkovChain():
     def close(self):
         self.brain.close()
 
+    def sync(self):
+        self.brain.sync()
+
 
 # Continue the sentence from the two given norms.
 # Returns a list of words. The norms must have been observed already
@@ -127,3 +130,7 @@ class Chatter():
     def close(self):
         for db in (self.fore, self.back, self.case, self.seed):
             db.close()
+
+    def sync(self):
+        for db in (self.fore, self.back, self.case, self.seed):
+            db.sync()
