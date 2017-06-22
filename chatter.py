@@ -21,6 +21,7 @@ class MarkovChain():
 
     def __init__(self, name, writeback=False):
         self.brain = shelve.open(name, writeback=writeback)
+        self.states = self.brain.keys()
 
     def observe(self, state, nextst):
         links = self.brain.get(state, ([],[]) )
@@ -76,7 +77,7 @@ class Chatter():
     def _keyword(self, norms):
         norms = norms.copy()
         random.shuffle(norms)
-        allnorms = self.case.brain.keys()
+        allnorms = self.case.states
 
         for nm in norms:
             if nm in allnorms:
@@ -119,7 +120,7 @@ class Chatter():
         keyw = self._keyword(norms)
         if not keyw:
             # no keyword? pick a random norm
-            allnorms = tuple(self.case.brain.keys())
+            allnorms = tuple(self.case.states)
             keyw = random.choice(allnorms)
         seed = self._seed(keyw)
         return self.generate(seed)
