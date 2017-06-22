@@ -118,8 +118,9 @@ class Chatter():
         norms = [_normalize(w) for w in line.split()]
         keyw = self._keyword(norms)
         if not keyw:
-            # no keywords? what to do? _seed(None) fails
-            pass
+            # no keyword? pick a random norm
+            allnorms = tuple(self.case.brain.keys())
+            keyw = random.choice(allnorms)
         seed = self._seed(keyw)
         return self.generate(seed)
 
