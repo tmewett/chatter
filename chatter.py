@@ -52,14 +52,14 @@ def _find_seq(chain, nms):
     norms = nms.copy()
     for i in count(0):
         nextw = chain.findnext(" ".join(norms[i:i+2]))
-        if nextw == "%END%": break
+        if nextw == None: break
         words.append(nextw)
         norms.append(_normalize(nextw))
     return words
 
 def _clean(lst):
     for s in lst:
-        if "://" in s or s == "%END%": continue
+        if "://" in s: continue
         yield s
 
 def _normalize(s):
@@ -105,13 +105,14 @@ class Chatter():
             return
         norms = [_normalize(w) for w in words]
 
-        words.insert(0, "%END%")
-        words.append("%END%")
+        # None signifies the end of the phrase
+        words.insert(0, None)
+        words.append(None)
         for i in range(len(norms)-1):
             self.fore.observe(" ".join(norms[i:i+2]), words[i+3])
             self.back.observe(" ".join(reversed(norms[i:i+2])), words[i])
             # We can't learn the case or seed with the last word. Otherwise
-            # _seed might give us a word pair with %END%
+            # _seed might give us an ending word pair
             self.case.observe(norms[i], words[i+1])
             self.seed.observe(words[i+1], words[i+2])
 
