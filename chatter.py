@@ -7,7 +7,6 @@ import os.path
 
 
 def _choices(choices):
-    choices = tuple(choices) # we have to iterate twice
     total = sum(w for c, w in choices)
     r = random.uniform(0, total)
     upto = 0
@@ -35,7 +34,8 @@ class MarkovChain():
 
     def findnext(self, state):
         links = self.brain[state]
-        return _choices(zip(*links))
+        pairs = zip(*links)
+        return _choices(tuple(pairs))
 
     def close(self):
         self.brain.close()
@@ -74,7 +74,7 @@ class Chatter():
         self.seed = MarkovChain(os.path.join(name, "seed.db"), writeback)
 
     # Returns a random learned norm in the list, or None
-    def _keyword(self, norms):
+    def keyword(self, norms):
         norms = norms.copy()
         random.shuffle(norms)
         allnorms = self.case.states
@@ -86,7 +86,7 @@ class Chatter():
 
     def _seed(self, norm):
         word = self.case.findnext(norm)
-        return word+" "+self.seed.findnext(word)
+        return word, self.seed.findnext(word)
 
     def learn(self, line):
         words = list(_clean(line.split()))
@@ -107,17 +107,16 @@ class Chatter():
 
     # Generate a sentence which includes wordpair, which must have been observed
     def generate(self, wordpair):
-        words = wordpair.split()
-        start = [_normalize(w) for w in words]
+        start = [_normalize(w) for w in wordpair]
         forewd = _find_seq(self.fore, start)
         backwd = _find_seq(self.back, start[::-1])
         backwd.reverse()
-        phrasei = chain(backwd, words, forewd)
+        phrasei = chain(backwd, wordpair, forewd)
         return " ".join(phrasei)
 
     def respond(self, line):
         norms = [_normalize(w) for w in line.split()]
-        keyw = self._keyword(norms)
+        keyw = self.keyword(norms)
         if not keyw:
             # no keyword? pick a random norm
             allnorms = tuple(self.case.states)
