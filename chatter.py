@@ -7,6 +7,7 @@ import os.path
 
 
 def _choices(choices):
+    """Choose an item randomly. choices is a sequence of (item, weight)"""
     total = sum(w for c, w in choices)
     r = random.uniform(0, total)
     upto = 0
@@ -44,9 +45,9 @@ class MarkovChain():
         self.brain.sync()
 
 
-# Continue the sentence from the two given norms.
-# Returns a list of words. The norms must have been observed already
 def _find_seq(chain, nms):
+    """Continue the sentence from the two given norms.
+    Returns a list of words. The norms must have been observed already"""
     words = []
     norms = nms.copy()
     for i in count(0):
@@ -62,11 +63,16 @@ def _clean(lst):
         yield s
 
 def _normalize(s):
-    #~ s = re.sub(r"([^\w\.])", "\\1", s)
+    # remove duplicate non-word chars
     s = re.sub(r"(\W){2,}", "\\1", s)
     return s.upper()
 
 class Chatter():
+    """Chatter uses four Markov chains (more descriptively, random mappings):
+    fore: norm seq -> word
+    back: norm seq -> word
+    seed: word -> next word
+    case: norm -> corresponding word"""
 
     def __init__(self, name, writeback=False):
         if not os.path.exists(name):
@@ -76,8 +82,8 @@ class Chatter():
         self.case = MarkovChain(os.path.join(name, "case.db"), writeback)
         self.seed = MarkovChain(os.path.join(name, "seed.db"), writeback)
 
-    # Returns a random learned norm in the list, or None
     def keyword(self, norms):
+        """"Return a random learned norm in the list, or None"""
         norms = norms.copy()
         random.shuffle(norms)
         allnorms = self.case.states
@@ -88,6 +94,7 @@ class Chatter():
         return None
 
     def _seed(self, norm):
+        """Get a random (w1, w2) such that w1's normalized form is norm"""
         word = self.case.findnext(norm)
         return word, self.seed.findnext(word)
 
@@ -100,16 +107,17 @@ class Chatter():
 
         words.insert(0, "%END%")
         words.append("%END%")
-        # -1 so we don't learn the case of the last word. Otherwise
-        # we will have problems seeding. TODO fix?
         for i in range(len(norms)-1):
             self.fore.observe(" ".join(norms[i:i+2]), words[i+3])
             self.back.observe(" ".join(reversed(norms[i:i+2])), words[i])
+            # We can't learn the case or seed with the last word. Otherwise
+            # _seed might give us a word pair with %END%
             self.case.observe(norms[i], words[i+1])
             self.seed.observe(words[i+1], words[i+2])
 
-    # Generate a sentence which includes wordpair, which must have been observed
-    def generate(self, wordpair):
+    def _generate(self, wordpair):
+        """Generate a sentence which includes the tuple wordpair.
+        Note: raises KeyError if wordpair hasn't been observed"""
         start = [_normalize(w) for w in wordpair]
         forewd = _find_seq(self.fore, start)
         backwd = _find_seq(self.back, start[::-1])
@@ -117,7 +125,8 @@ class Chatter():
         phrasei = chain(backwd, wordpair, forewd)
         return " ".join(phrasei)
 
-    def respond(self, line):
+    def respond(self, line=""):
+        """Generate a sentence, sharing a word with line if possible"""
         norms = [_normalize(w) for w in line.split()]
         keyw = self.keyword(norms)
         if not keyw:
@@ -125,7 +134,7 @@ class Chatter():
             allnorms = tuple(self.case.states)
             keyw = random.choice(allnorms)
         seed = self._seed(keyw)
-        return self.generate(seed)
+        return self._generate(seed)
 
     def close(self):
         for db in (self.fore, self.back, self.case, self.seed):
