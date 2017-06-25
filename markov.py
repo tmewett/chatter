@@ -33,6 +33,14 @@ class MarkovChain():
         pairs = zip(*links)
         return _choices(tuple(pairs))
 
+    def count(self, state):
+        if state in self.brain:
+            links = self.brain[state]
+            c = sum(links[1])
+        else:
+            c = 0
+        return c
+
     def close(self):
         self.brain.close()
 

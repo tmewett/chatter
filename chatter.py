@@ -43,12 +43,13 @@ class Chatter():
         self.seed = MarkovChain(os.path.join(name, "seed.db"), writeback)
 
     def keyword(self, norms):
-        """"Return a random learned norm in the list, or None"""
-        norms = norms.copy()
-        random.shuffle(norms)
+        """Return an 'interesting' learned norm in the list, or None. Currently
+        it chooses the least-observed one."""
+        sort = sorted(norms, key=lambda nm: self.case.count(nm))
         allnorms = self.case.states
 
-        for nm in norms:
+        for nm in sort:
+            # or count > 0?
             if nm in allnorms:
                 return nm
         return None
