@@ -3,7 +3,7 @@ import re
 import os.path
 from itertools import count, chain
 from os import mkdir
-from markov import MarkovChain
+from .markov import MarkovChain
 
 def _find_seq(chain, nms):
     """Continue the sentence from the two given norms.
