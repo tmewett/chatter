@@ -28,23 +28,26 @@ def _normalize(s):
     return s.upper()
 
 class Chatter():
-    """Chatter uses four Markov chains (more descriptively, random mappings):
-    fore: norm seq -> word
-    back: norm seq -> word
-    seed: word -> next word
-    case: norm -> corresponding word"""
 
     def __init__(self, name, writeback=False):
+        """Opens the Chatter database directory *name*, creating it if
+        necessary. *writeback* is passed to *shelve.open*, which causes
+        all DB reads/writes to be cached in memory."""
         if not os.path.exists(name):
             mkdir(name)
+        #~ Four Markov chains (more descriptively, random mappings) are used:
+        #~ fore: norm seq -> word
+        #~ back: norm seq -> word
+        #~ seed: word -> next word
+        #~ case: norm -> corresponding word
         self.fore = MarkovChain(os.path.join(name, "fore.db"), writeback)
         self.back = MarkovChain(os.path.join(name, "back.db"), writeback)
         self.case = MarkovChain(os.path.join(name, "case.db"), writeback)
         self.seed = MarkovChain(os.path.join(name, "seed.db"), writeback)
 
     def keyword(self, norms):
-        """Return an 'interesting' learned norm in the list, or None. Currently
-        it chooses the least-observed one."""
+        """Return an 'interesting' learned norm in the sequence *norms*,
+        or None. Currently it chooses the least-observed one."""
         sort = sorted(norms, key=lambda nm: self.case.count(nm))
         allnorms = self.case.states
 
@@ -60,6 +63,7 @@ class Chatter():
         return word, self.seed.findnext(word)
 
     def learn(self, line):
+        """Learn *line*, updating the model."""
         words = list(_clean(line.split()))
         if len(words) < 2:
             # We can't learn without at least 2 words
@@ -88,7 +92,7 @@ class Chatter():
         return " ".join(phrasei)
 
     def respond(self, line=""):
-        """Generate a sentence, sharing a word with line if possible"""
+        """Generate a sentence, sharing a word with *line* if possible"""
         norms = [_normalize(w) for w in line.split()]
         keyw = self.keyword(norms)
         if not keyw:
@@ -99,9 +103,13 @@ class Chatter():
         return self._generate(seed)
 
     def close(self):
+        "Closes the database shelves, making the instance unusable."
         for db in (self.fore, self.back, self.case, self.seed):
             db.close()
 
     def sync(self):
+        "Syncs the database shelves if *writeback* was True on init."
         for db in (self.fore, self.back, self.case, self.seed):
             db.sync()
+
+__all__ = ["Chatter"]
