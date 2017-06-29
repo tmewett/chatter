@@ -35,6 +35,15 @@ class MarkovChain():
 
         self.brain[state] = (paths, weights)
 
+    def forget(self, state, *nextsts):
+        paths, weights = self.brain[state]
+        for st in nextsts:
+            if st not in paths: continue
+            pos = paths.index(st)
+            del paths[pos]
+            del weights[pos]
+        self.brain[state] = (paths, weights)
+
     def findnext(self, state):
         links = self.brain[state]
         pairs = zip(*links)
