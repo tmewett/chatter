@@ -18,15 +18,22 @@ class MarkovChain():
         self.brain = shelve.open(name, writeback=writeback)
         self.states = self.brain.keys()
 
-    def observe(self, state, nextst):
-        links = self.brain.get(state, ([],[]) )
-        if nextst not in links[0]:
-            links[0].append(nextst)
-            links[1].append(1)
+    def observe(self, state, nextst, n=1):
+        if n == 0: return
+        paths, weights = self.brain.get(state, ([],[]))
+        if nextst not in paths:
+            if n < 1: return
+            paths.append(nextst)
+            weights.append(n)
         else:
-            pos = links[0].index(nextst)
-            links[1][pos] += 1
-        self.brain[state] = links
+            pos = paths.index(nextst)
+            weights[pos] += n
+            # Delete the entry if the weight is now invalid
+            if weights[pos] < 1:
+                del paths[pos]
+                del weights[pos]
+
+        self.brain[state] = (paths, weights)
 
     def findnext(self, state):
         links = self.brain[state]
