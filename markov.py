@@ -20,39 +20,34 @@ class MarkovChain():
 
     def observe(self, state, nextst, n=1):
         if n == 0: return
-        paths, weights = self.brain.get(state, ([],[]))
-        if nextst not in paths:
+        links = self.brain.get(state, dict())
+        if nextst not in links.keys():
             if n < 1: return
-            paths.append(nextst)
-            weights.append(n)
+            links[nextst] = n
         else:
-            pos = paths.index(nextst)
-            weights[pos] += n
+            links[nextst] += n
             # Delete the entry if the weight is now invalid
-            if weights[pos] < 1:
-                del paths[pos]
-                del weights[pos]
+            if links[nextst] < 1:
+                del links[nextst]
 
-        self.brain[state] = (paths, weights)
+        self.brain[state] = links
 
     def forget(self, state, *nextsts):
-        paths, weights = self.brain[state]
+        links = self.brain[state]
         for st in nextsts:
-            if st not in paths: continue
-            pos = paths.index(st)
-            del paths[pos]
-            del weights[pos]
-        self.brain[state] = (paths, weights)
+            if st not in links: continue
+            del links[pos]
+        self.brain[state] = links
 
     def findnext(self, state):
         links = self.brain[state]
-        pairs = zip(*links)
+        pairs = links.items()
         return _choices(tuple(pairs))
 
     def count(self, state):
-        if state in self.brain:
+        if state in self.states:
             links = self.brain[state]
-            c = sum(links[1])
+            c = sum(links.values())
         else:
             c = 0
         return c
