@@ -3,7 +3,7 @@ import re
 import os.path
 from itertools import count, chain
 from os import mkdir
-from .markov import MarkovChain
+from .markov import MarkovChain, _choices
 
 def _find_seq(chain, nms):
     """Continue the sentence from the two given norms.
@@ -47,15 +47,15 @@ class Chatter():
 
     def keyword(self, norms):
         """Return an 'interesting' learned norm in the sequence *norms*,
-        or None. Currently it chooses the least-observed one."""
-        sort = sorted(norms, key=lambda nm: self.case.count(nm))
-        allnorms = self.case.states
-
-        for nm in sort:
-            # or count > 0?
-            if nm in allnorms:
-                return nm
-        return None
+        or None. Currently it chooses randomly, preferring less
+        frequently-observed ones."""
+        counts = ((nm, self.case.count(nm)) for nm in norms)
+        counts = dict(c for c in counts if c[1] > 0)
+        if len(counts) == 0:
+            return None
+        maxi = max(counts.values())
+        weights = [(k, 1/v) for k, v in counts.items()]
+        return _choices(weights)
 
     def _seed(self, norm):
         """Get a random (w1, w2) such that w1's normalized form is norm"""
