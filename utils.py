@@ -10,15 +10,6 @@ def learn(fn):
 
 	print("Writing to disk...")
 	c.sync()
-
-	# the seed db can get large, so shrink it
-	db = c.seed.brain.dict
-	if hasattr(db, "reorganize"):
-		print("Reorganizing...")
-		db.reorganize()
-	else:
-		print("Skipped reorganizing (gdbm unavailable)")
-
 	c.close()
 
 def talk(name):

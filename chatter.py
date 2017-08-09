@@ -60,7 +60,7 @@ class Chatter():
     def _seed(self, norm):
         """Get a random (w1, w2) such that w1's normalized form is norm"""
         word = self.case.findnext(norm)
-        return word, self.seed.findnext(word)
+        return word, self.seed.findnext(norm)
 
     def learn(self, line):
         """Learn *line*, updating the model."""
@@ -79,7 +79,7 @@ class Chatter():
             # We can't learn the case or seed with the last word. Otherwise
             # _seed might give us an ending word pair
             self.case.observe(norms[i], words[i+1])
-            self.seed.observe(words[i+1], words[i+2])
+            self.seed.observe(norms[i], words[i+2])
 
     def _generate(self, wordpair):
         """Generate a sentence which includes the tuple wordpair.
