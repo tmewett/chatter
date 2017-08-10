@@ -3,6 +3,7 @@ import re
 import os.path
 from itertools import count, chain
 from os import mkdir
+from time import time
 from .markov import MarkovChain, _choices
 
 def _find_seq(chain, nms):
@@ -29,7 +30,7 @@ def _normalize(s):
 
 class Chatter():
 
-    def __init__(self, name, writeback=False):
+    def __init__(self, name, nosave=False):
         """Opens the Chatter database directory *name*, creating it if
         necessary. *writeback* is passed to *shelve.open*, which causes
         all DB reads/writes to be cached in memory."""
@@ -38,12 +39,17 @@ class Chatter():
         #~ Four Markov chains (more descriptively, random mappings) are used:
         #~ fore: norm seq -> word
         #~ back: norm seq -> word
-        #~ seed: word -> next word
+        #~ seed: norm -> next word
         #~ case: norm -> corresponding word
-        self.fore = MarkovChain(os.path.join(name, "fore.db"), writeback)
-        self.back = MarkovChain(os.path.join(name, "back.db"), writeback)
-        self.case = MarkovChain(os.path.join(name, "case.db"), writeback)
-        self.seed = MarkovChain(os.path.join(name, "seed.db"), writeback)
+        self.fore = MarkovChain(os.path.join(name, "fore.db"))
+        self.back = MarkovChain(os.path.join(name, "back.db"))
+        self.case = MarkovChain(os.path.join(name, "case.db"))
+        self.seed = MarkovChain(os.path.join(name, "seed.db"))
+        self.chains = (self.fore, self.back, self.case, self.seed)
+
+        self.nosave = nosave
+        self.lastsave = time()
+        self.writes = 0
 
     def keyword(self, norms):
         """Return an 'interesting' learned norm in the sequence *norms*,
@@ -81,6 +87,12 @@ class Chatter():
             self.case.observe(norms[i], words[i+1])
             self.seed.observe(norms[i], words[i+2])
 
+        self.writes += 1
+        if not self.nosave and time() > self.lastsave+300 and self.writes > 10:
+            self.save()
+            self.lastsave = time()
+            self.writes = 0
+
     def _generate(self, wordpair):
         """Generate a sentence which includes the tuple wordpair.
         Note: raises KeyError if wordpair hasn't been observed"""
@@ -102,14 +114,9 @@ class Chatter():
         seed = self._seed(keyw)
         return self._generate(seed)
 
-    def close(self):
-        "Closes the database shelves, making the instance unusable."
-        for db in (self.fore, self.back, self.case, self.seed):
-            db.close()
-
-    def sync(self):
+    def save(self):
         "Syncs the database shelves if *writeback* was True on init."
-        for db in (self.fore, self.back, self.case, self.seed):
-            db.sync()
+        for db in self.chains:
+            db.save()
 
 __all__ = ["Chatter"]

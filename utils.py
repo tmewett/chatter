@@ -2,15 +2,14 @@ from .chatter import Chatter
 
 def learn(fn):
 	"""Learns each line of the file named *fn* into the Chatter DB 'fn.d'."""
-	c = Chatter(fn+".d", writeback=True)
+	c = Chatter(fn+".d", nosave=True)
 
 	print("Learning...")
 	for l in open(fn, 'r'):
 		c.learn(l)
 
 	print("Writing to disk...")
-	c.sync()
-	c.close()
+	c.save()
 
 def talk(name):
 	"""Start a prompt to talk with the Chatter DB *name*."""

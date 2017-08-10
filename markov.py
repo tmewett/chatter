@@ -1,5 +1,5 @@
 import random
-import shelve
+from .storage import *
 
 def _choices(choices):
     """Choose an item randomly. choices is a sequence of (item, weight)"""
@@ -14,8 +14,8 @@ def _choices(choices):
 
 class MarkovChain():
 
-    def __init__(self, name, writeback=False):
-        self.brain = shelve.open(name, writeback=writeback)
+    def __init__(self, fname):
+        self.brain = load(fname)
         self.states = self.brain.keys()
 
     def observe(self, state, nextst, n=1):
@@ -52,8 +52,5 @@ class MarkovChain():
             c = 0
         return c
 
-    def close(self):
-        self.brain.close()
-
-    def sync(self):
-        self.brain.sync()
+    def save(self):
+        self.brain.save()
