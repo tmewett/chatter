@@ -27,6 +27,11 @@ def _normalize(s):
     s = re.sub(r"(\W){2,}", "\\1", s)
     return s.upper()
 
+def _supernorm(s):
+    # remove all non-words
+    s = re.sub(r"\W+", "", s)
+    return s
+
 class Chatter():
 
     def __init__(self, name, writeback=False):
@@ -49,7 +54,9 @@ class Chatter():
         """Return an 'interesting' learned norm in the sequence *norms*,
         or None. Currently it chooses randomly, preferring less
         frequently-observed ones."""
-        counts = ((nm, self.case.count(nm)) for nm in norms)
+        normset = set(norms)
+        normset.update(_supernorm(nm) for nm in norms)
+        counts = ((nm, self.case.count(nm)) for nm in normset)
         counts = dict(c for c in counts if c[1] > 0)
         if len(counts) == 0:
             return None
