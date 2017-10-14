@@ -1,3 +1,4 @@
+from time import perf_counter
 from .chatter import Chatter
 
 def learn(fn):
@@ -10,9 +11,12 @@ def learn(fn):
 		chain._brain = chain.brain
 		chain.brain = chain.brain.cache
 
+	start = perf_counter()
+	lc = 0
 	print("Learning...")
 	for l in open(fn, 'r'):
 		c.learn(l)
+		lc += 1
 
 	print("Writing to disk...")
 
@@ -24,6 +28,8 @@ def learn(fn):
 
 	c.sync()
 	c.close()
+	total = perf_counter() - start
+	print("Done. Learned {} lines in {:.3f} seconds.".format(lc, total))
 
 def talk(name):
 	"""Start a prompt to talk with the Chatter DB *name*."""
