@@ -30,14 +30,21 @@ class MarkovChain():
             if links[nextst] < 1:
                 del links[nextst]
 
-        self.brain[state] = links
+        if len(links) == 0:
+            del self.brain[state]
+        else:
+            self.brain[state] = links
 
     def forget(self, state, *nextsts):
+        if not nextsts: return
         links = self.brain[state]
         for st in nextsts:
             if st not in links: continue
-            del links[pos]
-        self.brain[state] = links
+            del links[st]
+        if len(links) == 0:
+            del self.brain[state]
+        else:
+            self.brain[state] = links
 
     def findnext(self, state):
         links = self.brain[state]
