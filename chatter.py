@@ -5,32 +5,6 @@ from itertools import count, chain
 from os import mkdir
 from .markov import MarkovChain, _choices
 
-def _find_seq(chain, nms):
-    """Continue the sentence from the two given norms.
-    Returns a list of words. The norms must have been observed already"""
-    words = []
-    norms = nms.copy()
-    for i in count(0):
-        nextw = chain.findnext(" ".join(norms[i:i+2]))
-        if nextw == None: break
-        words.append(nextw)
-        norms.append(_normalize(nextw))
-    return words
-
-def _clean(lst):
-    for s in lst:
-        if "://" in s: continue
-        yield s
-
-def _normalize(s):
-    # remove duplicate non-word chars
-    s = re.sub(r"(\W){2,}", "\\1", s)
-    return s.upper()
-
-def _supernorm(s):
-    # remove all non-words
-    s = re.sub(r"\W+", "", s)
-    return s
 
 class Chatter():
 
@@ -55,7 +29,7 @@ class Chatter():
         or None. Currently it chooses randomly, preferring less
         frequently-observed ones."""
         normset = set(norms)
-        normset.update(_supernorm(nm) for nm in norms)
+        normset.update(self.supernorm(nm) for nm in norms)
         counts = ((nm, self.case.count(nm)) for nm in normset)
         counts = dict(c for c in counts if c[1] > 0)
         if len(counts) == 0:
@@ -64,6 +38,26 @@ class Chatter():
         weights = [(k, 1/v) for k, v in counts.items()]
         return _choices(weights)
 
+    def splitwords(self, line):
+        """Override this method to change how input lines are split
+        into words and sanitised for learning. Returns a list of strings"""
+        # just get rid of URLs by default
+        return [w for w in string.split() if "://" not in w]
+
+    def normalise(self, s):
+        """Override this method to change how words are 'hashed' to
+        disregard information like case. This can return any hashable, picklable type"""
+        # remove duplicate non-word chars
+        s = re.sub(r"(\W){2,}", "\\1", s)
+        return s.upper()
+
+    def supernorm(self, s):
+        """Override this method to change how norms are 'hashed' further
+        to an even smaller set. (Only used in keyword extraction, may be removed)"""
+        # remove all non-words
+        s = re.sub(r"\W+", "", s)
+        return s
+
     def _seed(self, norm):
         """Get a random (w1, w2) such that w1's normalized form is norm"""
         word = self.case.findnext(norm)
@@ -71,11 +65,11 @@ class Chatter():
 
     def learn(self, line):
         """Learn *line*, updating the model."""
-        words = list(_clean(line.split()))
+        words = self.splitwords(line)
         if len(words) < 2:
             # We can't learn without at least 2 words
             return
-        norms = [_normalize(w) for w in words]
+        norms = [self.normalise(w) for w in words]
 
         # None signifies the end of the phrase
         words.insert(0, None)
@@ -88,19 +82,31 @@ class Chatter():
             self.case.observe(norms[i], words[i+1])
             self.seed.observe(norms[i], words[i+2])
 
+    def _find_seq(self, chain, nms):
+        """Continue the sentence from the two given norms, by walking through *chain*.
+        Returns a list of words. The norms must have been observed already"""
+        words = []
+        norms = nms.copy()
+        for i in count(0):
+            nextw = chain.findnext(" ".join(norms[i:i+2]))
+            if nextw == None: break
+            words.append(nextw)
+            norms.append(self.normalise(nextw))
+        return words
+
     def _generate(self, wordpair):
         """Generate a sentence which includes the tuple wordpair.
         Note: raises KeyError if wordpair hasn't been observed"""
-        start = [_normalize(w) for w in wordpair]
-        forewd = _find_seq(self.fore, start)
-        backwd = _find_seq(self.back, start[::-1])
+        start = [self.normalise(w) for w in wordpair]
+        forewd = self._find_seq(self.fore, start)
+        backwd = self._find_seq(self.back, start[::-1])
         backwd.reverse()
         phrasei = chain(backwd, wordpair, forewd)
         return " ".join(phrasei)
 
     def respond(self, line=""):
         """Generate a sentence, sharing a word with *line* if possible"""
-        norms = [_normalize(w) for w in line.split()]
+        norms = [self.normalise(w) for w in line.split()]
         keyw = self.keyword(norms)
         if not keyw:
             # no keyword? pick a random norm
