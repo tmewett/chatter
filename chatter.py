@@ -42,7 +42,7 @@ class Chatter():
         """Override this method to change how input lines are split
         into words and sanitised for learning. Returns a list of strings"""
         # just get rid of URLs by default
-        return [w for w in string.split() if "://" not in w]
+        return [w for w in line.split() if "://" not in w]
 
     def normalise(self, s):
         """Override this method to change how words are 'hashed' to
@@ -50,6 +50,11 @@ class Chatter():
         # remove duplicate non-word chars
         s = re.sub(r"(\W){2,}", "\\1", s)
         return s.upper()
+
+    def normtokey(self, norms):
+        """Override this method to change how a norm tuple *norms* is converted to a bytes
+        or string object for storage in the database"""
+        return " ".join(norms)
 
     def supernorm(self, s):
         """Override this method to change how norms are 'hashed' further
@@ -75,8 +80,8 @@ class Chatter():
         words.insert(0, None)
         words.append(None)
         for i in range(len(norms)-1):
-            self.fore.observe(" ".join(norms[i:i+2]), words[i+3])
-            self.back.observe(" ".join(reversed(norms[i:i+2])), words[i])
+            self.fore.observe(self.normtokey(norms[i:i+2]), words[i+3])
+            self.back.observe(self.normtokey(reversed(norms[i:i+2])), words[i])
             # We can't learn the case or seed with the last word. Otherwise
             # _seed might give us an ending word pair
             self.case.observe(norms[i], words[i+1])
@@ -88,7 +93,7 @@ class Chatter():
         words = []
         norms = nms.copy()
         for i in count(0):
-            nextw = chain.findnext(" ".join(norms[i:i+2]))
+            nextw = chain.findnext(self.normtokey(norms[i:i+2]))
             if nextw == None: break
             words.append(nextw)
             norms.append(self.normalise(nextw))
@@ -106,7 +111,7 @@ class Chatter():
 
     def respond(self, line=""):
         """Generate a sentence, sharing a word with *line* if possible"""
-        norms = [self.normalise(w) for w in line.split()]
+        norms = [self.normalise(w) for w in self.splitwords(line)]
         keyw = self.keyword(norms)
         if not keyw:
             # no keyword? pick a random norm
